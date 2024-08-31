@@ -9,9 +9,9 @@ To write a program to predict the profit of a city using the linear regression m
 
 ## Algorithm
 1. Import the required library and read the dataframe.
-2. Write a function computeCost to generate the cost function.
+2. Load the data
 3. Perform iterations og gradient steps with learning rate.
-4. Plot the Cost function using Gradient Descent and generate the required graph.
+4. Print the predictions with state names
 
 ## Program:
 ```
@@ -20,55 +20,80 @@ Developed by: Gnanendran N
 RegisterNumber: 212223240037
 ```
 ```
-import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+import numpy as np
+from sklearn.preprocessing import OneHotEncoder
 
-def linear_regression(X1,y,learning_rate = 0.1, num_iters = 1000):
-    X = np.c_[np.ones(len(X1)),X1]
+# Load the data
+file_path = '50_Startups.csv'
+data = pd.read_csv(file_path)
+
+# Display the original data
+print("Original Data:")
+print(data.head())
+
+encoder = OneHotEncoder(drop='first')  # drop='first' to avoid multicollinearity
+state_encoded = encoder.fit_transform(data[['State']]).toarray()
+
+# Create a DataFrame for the encoded state variables
+state_encoded_df = pd.DataFrame(state_encoded, columns=encoder.get_feature_names_out(['State']))
+
+# Combine the encoded state variables with the original dataset
+data_processed = pd.concat([data.drop('State', axis=1), state_encoded_df], axis=1)
+
+# Separate the features (X) and the target variable (y)
+X = data_processed.drop('Profit', axis=1).values
+y = data_processed['Profit'].values
+
+# Normalize the features for better performance of gradient descent
+X_normalized = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+
+# Add a column of ones to X_normalized to account for the intercept term (bias)
+X_normalized = np.c_[np.ones(X_normalized.shape[0]), X_normalized]
+
+# Initialize parameters (theta) to zero
+theta = np.zeros(X_normalized.shape[1])
+
+# Define the learning rate and the number of iterations
+learning_rate = 0.01
+num_iterations = 1500
+
+# Define the cost function
+def compute_cost(X, y, theta):
+    m = len(y)
+    predictions = X.dot(theta)
+    cost = (1/2*m) * np.sum(np.square(predictions - y))
+    return cost
+
+# Implement gradient descent
+def gradient_descent(X, y, theta, learning_rate, num_iterations):
+    m = len(y)
+    cost_history = np.zeros(num_iterations)
     
-    theta = np.zeros(X.shape[1]).reshape(-1,1)
-    
-    for _ in range(num_iters):
+    for i in range(num_iterations):
+        predictions = X.dot(theta)
+        theta = theta - (1/m) * learning_rate * (X.T.dot(predictions - y))
+        cost_history[i] = compute_cost(X, y, theta)
         
-        #calculate predictions
-        predictions = (X).dot(theta).reshape(-1,1)
-        
-        #calculate errors
-        errors=(predictions - y ).reshape(-1,1)
-        
-        #update theta using gradiant descent
-        theta -= learning_rate*(1/len(X1))*X.T.dot(errors)
-    return theta
-                                        
-data=pd.read_csv("50_Startups.csv")
-data.head()
+    return theta, cost_history
 
-#assuming the lost column is your target variable 'y' 
+# Run gradient descent
+theta, cost_history = gradient_descent(X_normalized, y, theta, learning_rate, num_iterations)
 
-X = (data.iloc[1:,:-2].values)
-X1=X.astype(float)
+# Print the learned parameters
+print("\nLearned Parameters (theta):")
+print(theta)
 
-scaler = StandardScaler()
-y=(data.iloc[1:,-1].values).reshape(-1,1)
-X1_Scaled = scaler.fit_transform(X1)
-Y1_Scaled = scaler.fit_transform(y)
-print(X)
-print(X1_Scaled)
-#learn modwl paramerers
+# Predict the profit for the first three states
+predicted_profits = X_normalized[:3].dot(theta)
+states = data['State'][:3]
 
-theta=linear_regression(X1_Scaled,Y1_Scaled)
-
-#predict target value for a new data
-new_data=np.array([165349.2,136897.8,471784.1]).reshape(-1,1)
-new_Scaled=scaler.fit_transform(new_data)
-prediction=np.dot(np.append(1,new_Scaled),theta)
-prediction=prediction.reshape(-1,1)
-pre=scaler.inverse_transform(prediction)
-print(prediction)
-print(f"Predicted value: {pre}")
+# Print the predictions with state names
+print("\nPredicted Profits for the First 3 States:")
+for state, profit in zip(states, predicted_profits):
+    print(f"State: {state}, Predicted Profit: ${profit:.2f}")
 ```
 ## Output:
-### X Value
+![image](https://github.com/user-attachments/assets/6dfc5121-044f-45f2-9bf2-9ad170d58de1)
 ## Result:
 Thus the program to implement the linear regression using gradient descent is written and verified using python programming.
